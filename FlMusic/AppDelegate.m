@@ -32,26 +32,14 @@
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
     UIWindow *window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
-   // [self setupAppearance];
-    
+ //   [self setupAppearance];
 	self.window = window;
-   
-   // PlayerViewController *frontViewController = [[PlayerViewController alloc] init];
 	ViewController *rearViewController = [[ViewController alloc] init];
     UINavigationController *navigationController = [[UINavigationController alloc]  initWithRootViewController:rearViewController];
-    
-    /*
-    UINavigationController *frontNavigationController = [[UINavigationController alloc] initWithRootViewController:frontViewController];
-    UINavigationController *rearNavigationController = [[UINavigationController alloc] initWithRootViewController:rearViewController];
-    
-    SWRevealViewController *mainRevealController = [[SWRevealViewController alloc]
-                                                    initWithRearViewController:rearNavigationController frontViewController:frontNavigationController];
-    
-    mainRevealController.delegate = self;
-    */
 	self.viewController = navigationController;
-	
 	self.window.rootViewController = self.viewController;
+    [[UIApplication sharedApplication] beginReceivingRemoteControlEvents]; // 锁屏时在屏幕显示播放器
+    [self becomeFirstResponder];
 	[self.window makeKeyAndVisible];
 	return YES;
 

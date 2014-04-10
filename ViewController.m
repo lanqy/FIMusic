@@ -5,7 +5,7 @@
 //  Created by lanqy on 14-1-15.
 //  Copyright (c) 2014年 lanqy. All rights reserved.
 //
-
+#import "AppDelegate.h"
 #import "ViewController.h"
 #import <AVFoundation/AVFoundation.h>
 #import <MediaPlayer/MediaPlayer.h>
@@ -13,27 +13,11 @@
 #import "NSString+TimeToString.h"
 #import "PlayerViewController.h"
 @interface ViewController ()
-@property (strong, nonatomic) AVPlayer *audioPlayer;
-@property (strong, nonatomic, readwrite) MPMediaItem *nowPlayingItem;
-@property (nonatomic, readwrite) NSUInteger indexOfNowPlayingItem;
-@property (nonatomic) MPMusicPlaybackState playbackState;
 
 @end
 
 @implementation ViewController
 @synthesize rearTableView = _rearTableView;
-@synthesize songLabel = _songLabel;
-@synthesize artistLabel = _artistLabel;
-@synthesize songAlbumLabel = _songAlbumLabel;
-@synthesize imageView = _imageView;
-@synthesize playPauseButton = _playPauseButton;
-@synthesize progressSlider = _progressSlider;
-@synthesize volumeSlider = _volumeSlider;
-@synthesize trackCurrentPlaybackTimeLabel = _trackCurrentPlaybackTimeLabel;
-@synthesize trackLengthLabel = _trackLengthLabel;
-@synthesize repeatButton = _repeatButton;
-@synthesize shuffleButton = _shuffleButton;
-@synthesize timer = _timer;
 @synthesize playerViewController = _playerViewController;
 
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
@@ -49,7 +33,7 @@
 {
     [super viewDidLoad];
     [self setNeedsStatusBarAppearanceUpdate];
-    [self initSession];
+   // [self initSession];
     
     // 修改Navigation Bar Title text color
     UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(10, 15, 300, 20)];
@@ -59,17 +43,15 @@
     label.textAlignment = NSTextAlignmentCenter;
     
     label.textColor = [UIColor grayColor]; // change this color
-    label.text = NSLocalizedString(@"音乐列表", @"");
+    label.text = NSLocalizedString(@"音乐", @"Songs");
     self.navigationItem.titleView = label;
     
-    self.rearTableView = [[UITableView alloc] initWithFrame:CGRectMake(0.0, 0.0, 320.0, [[UIScreen mainScreen] bounds].size.height - 160) style:UITableViewStylePlain];
+    self.rearTableView = [[UITableView alloc] initWithFrame:CGRectMake(0.0, 0.0, [[UIScreen mainScreen] bounds].size.width, [[UIScreen mainScreen] bounds].size.height) style:UITableViewStylePlain];
     self.rearTableView.dataSource =self;
     self.rearTableView.delegate = self;
    // [self.rearTableView setSeparatorStyle:UITableViewCellSeparatorStyleNone];
     [self.view addSubview:self.rearTableView];
     
-    //2
-    self.audioPlayer = [[AVPlayer alloc] init];
     MPMediaQuery *everything = [[MPMediaQuery alloc] init];
     NSArray *itemsFromGenericQuery = [everything items];
     self.songsList = [NSMutableArray arrayWithArray:itemsFromGenericQuery];
@@ -102,65 +84,18 @@
     // 刷新列表
     [self.rearTableView reloadData];
     
-    // 获取歌曲属性
-    MPMediaItem *song = [self.musicList objectAtIndex:0];
+    // 一秒后自动调用播放器
+    [self performSelector:@selector(presentPlayerViewControllerWithoutAnimation) withObject:nil afterDelay:1.0];
     
-    [self playingEndNotification:song];
-    
-    // 生成播放器ui界面
-    [self buildMusicPlayer];
-    
-    self.indexOfNowPlayingItem = 0;
-   
-    [self selectTableCellByIndex:0];
-    
-    [self setSliderTimeAndValue:song];
-    
-    [self configurePlayer];
-    
-    
+}
+
+-(void)presentPlayerViewControllerWithoutAnimation
+{
+    [self selectSongByIndexFromList:0];
 }
 
 -(UIStatusBarStyle)preferredStatusBarStyle{
     return UIStatusBarStyleLightContent;
-}
-
-- (void)playingEndNotification:(id)song
-{
-    AVPlayerItem * currentItem = [AVPlayerItem playerItemWithURL:[song valueForProperty:MPMediaItemPropertyAssetURL]];
-
-    [self.audioPlayer replaceCurrentItemWithPlayerItem:currentItem];
-    [self setSliderTimeAndValue:song];
-    //[self.audioPlayer play];
-    self.playbackState = MPMusicPlaybackStatePlaying;
-    
-    NSString *songTitle = [song valueForProperty: MPMediaItemPropertyTitle];
-    self.songName.text = songTitle;
-    
-    // 歌曲播放完整通知
-    [[NSNotificationCenter defaultCenter] addObserver:self
-                                             selector:@selector(playerItemDidReachEnd:)
-                                                 name:AVPlayerItemDidPlayToEndTimeNotification
-                                               object:currentItem];
-    
-    
-}
-
-- (void)playerItemDidReachEnd:(NSNotification *)notification
-{
-    NSLog(@"ending");
-    
-    if (self.indexOfNowPlayingItem < ([self.musicList count])) {
-        self.indexOfNowPlayingItem++;
-        [self selectTableCellByIndex:self.indexOfNowPlayingItem];
-        MPMediaItem *song = [self.musicList objectAtIndex:self.indexOfNowPlayingItem];
-        [self playingEndNotification:song];
-    }else{
-        self.indexOfNowPlayingItem = 0;
-        return;
-    }
-    
-    
 }
 
 // 通过索引选中cell
@@ -168,23 +103,6 @@
 {
     NSIndexPath* selected = [NSIndexPath indexPathForRow:index inSection:0];
     [self.rearTableView selectRowAtIndexPath:selected animated:false scrollPosition:UITableViewScrollPositionMiddle];
-}
-
-// 通过索引获取歌曲
-- (void)getSongsByIndex:(NSInteger *)index
-{
-    
-}
-
-// 初始化session,用于在后台播放音乐
-- (void)initSession
-{
-    AVAudioSession *session = [AVAudioSession sharedInstance];
-    [session setCategory:AVAudioSessionCategoryPlayback error:NULL];
-    
-    AVAudioSession *backgroundMusic = [AVAudioSession sharedInstance];
-    
-    [backgroundMusic setCategory:AVAudioSessionCategoryPlayback error:NULL];
 }
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
@@ -207,15 +125,23 @@
     NSString *songTitle = [song valueForProperty: MPMediaItemPropertyTitle];
     NSString *albumTitle = [song valueForProperty:MPMediaItemPropertyAlbumTitle];
     NSString *Artist = [song valueForProperty:MPMediaItemPropertyArtist];
-    
+    UIImage *ArtworkImage = NULL;
     // Artwork
     MPMediaItemArtwork *artwork = [song valueForProperty:MPMediaItemPropertyArtwork];
     if (artwork != nil) {
-        cell.artWork.image = [artwork imageWithSize:CGSizeMake(50.0f, 50.0f)];
+        ArtworkImage = [artwork imageWithSize:CGSizeMake(50.0f, 50.0f)];
+        
     }
-
+    
+    
+    if (ArtworkImage) {
+        cell.artWork.image = ArtworkImage;
+    }else{
+        cell.artWork.image = [UIImage imageNamed:@"white"];
+    }
+    
     cell.songName.text = songTitle;
-    cell.Artist.text = [NSString stringWithFormat:@"%@ - %@",([Artist length] == 0 ? @"未知歌手" : Artist),([albumTitle length] == 0 ? @"未知专辑" : albumTitle)];
+    cell.Artist.text = [NSString stringWithFormat:@"%@ - %@",([Artist length] == 0 ? NSLocalizedString(@"未知歌手", @"Unknown Artist") : Artist),([albumTitle length] == 0 ? NSLocalizedString(@"未知专辑", @"Unkown Album") : albumTitle)];
     cell.songName.highlightedTextColor = [UIColor whiteColor];
     cell.Artist.highlightedTextColor = [UIColor whiteColor];
     
@@ -237,166 +163,32 @@
 #pragma mark - TableView Delegate Methods
 
 -(void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+    [self selectSongByIndexFromList:indexPath.row];
+}
+
+-(void)selectSongByIndexFromList:(int *)index
+{
     
-     MPMediaItem *song = [self.musicList objectAtIndex:indexPath.row];
-   //  [self playSelectedCurrentSong:indexPath];
-   // [self.audioPlayer pause];
-    NSLog(@"%d",MPMusicPlaybackStatePlaying);
-    /*
-    if (self.playbackState == MPMusicPlaybackStatePlaying) {
-        [self.audioPlayer pause];
-        self.playbackState = MPMusicPlaybackStatePaused;
-    }else{
-        [self.audioPlayer play];
-        self.playbackState = MPMusicPlaybackStatePlaying;
-    }
-    */
+    MPMediaItem *song = [self.musicList objectAtIndex:index];
     if (!self.playerViewController) {
         self.playerViewController = [[PlayerViewController alloc] initWithNibName:@"PlayerViewController" bundle:nil];
     }
     self.playerViewController.playItem = song;
-    self.playerViewController.indexPlaying = indexPath.row;
+    self.playerViewController.indexPlaying = index;
     self.playerViewController.msList = self.musicList;
-    [self.navigationController pushViewController:self.playerViewController animated:YES];
-}
-
--(void)playSelectedCurrentSong:(NSIndexPath *)indexPath
-{
-    [self.audioPlayer pause];
-    MPMediaItem *song = [self.musicList objectAtIndex:indexPath.row];
+    AppDelegate *app=(AppDelegate *)[[UIApplication sharedApplication]delegate];
+    app.isFromList = YES;
+    app.isPlaying = NO;
     
-    [self playingEndNotification:song];
-    
-    [self.togglePlayPause setSelected:YES];
-    
-    NSString *songTitle = [song valueForProperty: MPMediaItemPropertyTitle];
-    self.songName.text = songTitle;
-    self.indexOfNowPlayingItem = indexPath.row;
-    [self setSliderTimeAndValue:song];
-    
-}
-
-
--(void)setSliderTimeAndValue:(MPMediaItem *)nowPlayingItem{
-    
-    NSTimeInterval trackLength = [[nowPlayingItem valueForProperty:MPMediaItemPropertyPlaybackDuration] doubleValue];
-    self.trackLengthLabel.text = [NSString stringFromTime:trackLength];
-    self.progressSlider.value = 0;
-    self.progressSlider.maximumValue = trackLength;
-    NSString *nowPlaysongTitle = [nowPlayingItem valueForProperty: MPMediaItemPropertyTitle];
-    NSString *nowPlayalbumTitle = [nowPlayingItem valueForProperty:MPMediaItemPropertyAlbumTitle];
-    NSString *nowPlayArtist = [nowPlayingItem valueForProperty:MPMediaItemPropertyArtist];
-    
-    // Artwork
-    MPMediaItemArtwork *nowPlayartwork = [nowPlayingItem valueForProperty:MPMediaItemPropertyArtwork];
-    if (nowPlayartwork != nil) {
-        self.imageView.image = [nowPlayartwork imageWithSize:CGSizeMake(50.0f, 50.0f)];
-    }
-    
-    self.artistLabel.text = nowPlayArtist;
-    
-    self.songAlbumLabel.text = nowPlayalbumTitle;
-    
-    self.songLabel.text = nowPlaysongTitle;
-}
-
--(void)buildMusicPlayer
-{
-    
-    UIView *line = [[UIView alloc] initWithFrame:CGRectMake(0, [[UIScreen mainScreen] bounds].size.height - 160, 320, 2)];
-    [line setBackgroundColor:[UIColor grayColor]];
-    [line setAlpha:0.2f];
-    [self.view addSubview:line];
-    
-    self.artistLabel = [[UILabel alloc] initWithFrame:CGRectMake(10, [[UIScreen mainScreen] bounds].size.height - 160 + 10, 225, 20)];
-    self.artistLabel.textColor = [UIColor colorWithRed:0.0 green:122.0/255.0 blue:1.0 alpha:1.0];
-    self.artistLabel.font = [UIFont fontWithName:@"Arial" size:17.0f];
-    self.artistLabel.textAlignment = NSTextAlignmentLeft;
-    [self.view addSubview:self.artistLabel];
-    
-    self.songAlbumLabel = [[UILabel alloc] initWithFrame:CGRectMake(10, [[UIScreen mainScreen] bounds].size.height - 160 + 10 + 24, 225, 20)];
-    self.songAlbumLabel.textColor = [UIColor grayColor];
-    self.songAlbumLabel.font = [UIFont fontWithName:@"Arial" size:14.0f];
-    self.songAlbumLabel.textAlignment = NSTextAlignmentLeft;
-    [self.view addSubview:self.songAlbumLabel];
-    
-    
-    self.songLabel = [[UILabel alloc] initWithFrame:CGRectMake(10, [[UIScreen mainScreen] bounds].size.height - 160 + 10 + 47, 225, 20)];
-    self.songLabel.textColor = [UIColor blackColor];
-    self.songLabel.font = [UIFont fontWithName:@"Arial" size:17.0f];
-    self.songLabel.textAlignment = NSTextAlignmentLeft;
-    [self.view addSubview:self.songLabel];
-    
-    self.imageView = [[UIImageView alloc] initWithFrame:CGRectMake(230, [[UIScreen mainScreen] bounds].size.height - 160 + 10, 80, 80)];
-    self.imageView.image = [UIImage imageNamed:@"albumart-cd"];
-    [self.view addSubview:self.imageView];
-
-
-    self.trackCurrentPlaybackTimeLabel = [[UILabel alloc] initWithFrame:CGRectMake(10, [[UIScreen mainScreen] bounds].size.height - 160 + 10 + 57 + 27, 45, 20)];
-    self.trackCurrentPlaybackTimeLabel.textColor = [UIColor colorWithRed:0.0 green:122.0/255.0 blue:1.0 alpha:1.0];
-    self.trackCurrentPlaybackTimeLabel.font = [UIFont fontWithName:@"Arial" size:15.0f];
-    self.trackCurrentPlaybackTimeLabel.textAlignment = NSTextAlignmentLeft;
-    [self.view addSubview:self.trackCurrentPlaybackTimeLabel];
-    
-    
-    self.trackLengthLabel = [[UILabel alloc] initWithFrame:CGRectMake(265, [[UIScreen mainScreen] bounds].size.height - 160 + 10 + 57 + 27, 45, 20)];
-    self.trackLengthLabel.textColor =  [UIColor grayColor];
-    self.trackLengthLabel.font = [UIFont fontWithName:@"Arial" size:15.0f];
-    self.trackLengthLabel.textAlignment = NSTextAlignmentRight;
-    [self.view addSubview:self.trackLengthLabel];
-    
-    CGRect myFrame = CGRectMake(50.0f, [[UIScreen mainScreen] bounds].size.height - 160 + 10 + 57 + 27, 220.0f, 20.0f);
-    self.progressSlider = [[UISlider alloc] initWithFrame:myFrame];
-    self.progressSlider.minimumValue = 0.0f;
-    self.progressSlider.maximumValue = 100.0f;
-    self.progressSlider.value = 0.0f;
-    [self.progressSlider setContinuous:false];
-    [self.progressSlider addTarget:self action:@selector(getSilderValue:) forControlEvents:UIControlEventValueChanged];
-    [self.view addSubview: self.progressSlider];
-    
-    // toolbar begin
-    UIBarButtonItem *flexiableItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:self action:nil];
-    UIBarButtonItem *loop = [[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"loop"] style:UIBarButtonItemStylePlain target:self action:@selector(loopAction:)];
-    UIBarButtonItem *shuffle = [[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"shuffle"] style:UIBarButtonItemStylePlain target:self action:@selector(shuffleAction:)];
-    UIBarButtonItem *volume = [[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"volume-high"] style:UIBarButtonItemStylePlain target:self action:@selector(volumeAction:)];
-    UIBarButtonItem *list = [[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"list"] style:UIBarButtonItemStylePlain target:self action:@selector(listAction:)];
-    
-    UIToolbar *toolbar = [[UIToolbar alloc] init];
-    [toolbar setBackgroundImage:[UIImage new]
-                  forToolbarPosition:UIToolbarPositionAny
-                          barMetrics:UIBarMetricsDefault];
-    
-    [toolbar setBackgroundColor:[UIColor clearColor]]; // 去掉背景
-    [toolbar setTintColor:[UIColor colorWithRed:0.0 green:122.0/255.0 blue:1.0 alpha:1.0]];
-    
-    CGRect frame = CGRectMake(0, [[UIScreen mainScreen] bounds].size.height - 43, [[UIScreen mainScreen] bounds].size.width, 43);
-    [toolbar setFrame:frame];
-    NSArray *items = [NSArray arrayWithObjects:shuffle, flexiableItem, loop,flexiableItem,volume,flexiableItem,list, nil];
-    toolbar.items = items;
-    toolbar.clipsToBounds = YES; // 去掉toolbar上边框
-    [self.view addSubview:toolbar];
+    [self presentModalViewController:self.playerViewController animated:YES];
 
 }
-
-- (void)loopAction:(id)sender{
-    NSLog(@"looping");
-}
-
-- (void)shuffleAction:(id)sender{
-    NSLog(@"shuffing");
-}
-
-- (void)volumeAction:(id)sender{
-    NSLog(@"set volume");
-}
-
-- (void)listAction:(id)sender{
-    NSLog(@"listing");
-}
-
 
 -(void)viewWillAppear:(BOOL)animated {
    [[self navigationController] setNavigationBarHidden:NO animated:YES];
+    // 取消选中高亮
+    NSIndexPath *tableSelection = [self.rearTableView indexPathForSelectedRow];
+    [self.rearTableView deselectRowAtIndexPath:tableSelection animated:YES];
 }
 
 - (void) getSilderValue:(UISlider *)paramSender{
@@ -404,27 +196,7 @@
     if ([paramSender isEqual:self.progressSlider]) {
         float newValue = paramSender.value / 10;
         self.trackCurrentPlaybackTimeLabel.text = [NSString stringFromTime:floor(newValue) * 10];
-        
     }
-}
-
--(void) configurePlayer {
-    //7
-    __block ViewController * weakSelf = self;
-    //8
-    [self.audioPlayer addPeriodicTimeObserverForInterval:CMTimeMakeWithSeconds(1, 1)
-                                                   queue:NULL
-                                              usingBlock:^(CMTime time) {
-                                                  if(!time.value) {
-                                                      return;
-                                                  }
-                                                  int currentTime = (int)((weakSelf.audioPlayer.currentTime.value)/weakSelf.audioPlayer.currentTime.timescale);
-                                                  
-                                                  NSString * durationLabel = [NSString stringFromTime:currentTime];
-                                                  self.trackCurrentPlaybackTimeLabel.text = durationLabel;
-                                                  self.progressSlider.value = currentTime;
-                                              }];
-    
 }
 
 - (void)didReceiveMemoryWarning
@@ -452,7 +224,6 @@
 {
     //decide number of origination tob supported by Viewcontroller.
     return UIInterfaceOrientationMaskAll;
-    
 }
 
 @end

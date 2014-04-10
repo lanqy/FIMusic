@@ -15,4 +15,7 @@
 @property (strong, nonatomic) UIWindow *window;
 @property (strong, nonatomic) ViewController *viewController;
 
+@property (nonatomic) BOOL isPlaying; //默认为YES
+@property (nonatomic) BOOL isFromList; // 默认为NO
+
 @end

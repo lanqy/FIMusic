@@ -1,0 +1,14 @@
+
+<title>操作指南</title>
+<_bullet>应用启动时，默认播放列表中的第一首歌。</_bullet>
+<_bullet>长按封面会弹出音量调节。</_bullet>
+<_bullet>左右划动封面切换歌曲。</_bullet>
+<_bullet>歌曲播放过程中，点击封面可暂停播放，再次点击继续播放。</_bullet>
+<_bullet>双击封面可跳到最后一首。</_bullet>
+<_bullet>如当前播放的是最后一首，双击封面则跳到第一首。</_bullet>
+<_bullet>向下划动封面可关闭播放器，返回列表。</_bullet>
+<_bullet>向上划动封面可出现本操作指南。</_bullet>
+<_bullet>当前界面向下划动可关掉本操作指南。</_bullet>
+<subtitle>联系作者:</subtitle>
+邮件：<_link>mailTo:lanqy.me@gmail.com|lanqy.me@gmail.com</_link>
+微博：<_link>http://weibo.com/279510455|http://weibo.com/279510455</_link>
